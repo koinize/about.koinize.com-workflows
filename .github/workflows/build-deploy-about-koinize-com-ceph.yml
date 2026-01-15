@@ -11,14 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo
+      # 1. Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Install AWS CLI
-      # -------------------------
-      # Configure AWS credentials
-      # -------------------------
+      # 2. Configure AWS credentials (for Ceph/Dynabic S3)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -26,12 +23,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_DEFAULT_REGION }}
 
-      # 3. Deploy to Ceph
+      # 3. Deploy static files to Ceph bucket
       - name: Deploy to Ceph bucket (about-koinize-com)
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
           AWS_ENDPOINT_URL: ${{ vars.AWS_ENDPOINT_URL }}
         run: |
           aws s3 sync . s3://about-koinize-com \
@@ -40,7 +34,7 @@ jobs:
             --exclude ".git/*" \
             --exclude ".github/*"
 
-      # 4. Purge Bunny CDN cache
+      # 4. Purge Bunny CDN cache (optional, if CDN enabled)
       - name: Purge Bunny CDN cache
         if: success()
         run: |
