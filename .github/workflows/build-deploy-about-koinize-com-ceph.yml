@@ -11,53 +11,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------------------------------
       # 1. Checkout source code
-      # --------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --------------------------------------------------
-      # 2. Setup Node.js (adjust version if needed)
-      # --------------------------------------------------
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
 
-      # --------------------------------------------------
       # 3. Install dependencies
-      # --------------------------------------------------
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # --------------------------------------------------
       # 4. Build website
-      # (adjust build command or output dir if different)
-      # --------------------------------------------------
       - name: Build website
         run: npm run build
 
-      # --------------------------------------------------
-      # 5. Deploy to Ceph (Dynabic S3-compatible storage)
-      # --------------------------------------------------
+      # 5. Install AWS CLI
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      # 6. Deploy to Ceph
       - name: Deploy to Ceph bucket (about-koinize-com)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+          AWS_ENDPOINT_URL: ${{ vars.AWS_ENDPOINT_URL }}
         run: |
           aws s3 sync ./build s3://about-koinize-com \
-            --endpoint-url ${{ vars.AWS_ENDPOINT_URL }} \
+            --endpoint-url $AWS_ENDPOINT_URL \
             --delete
 
-      # --------------------------------------------------
-      # 6. Purge Bunny.net cache (if CDN is enabled)
-      # --------------------------------------------------
+      # 7. Purge Bunny CDN cache
       - name: Purge Bunny CDN cache
         if: success()
         run: |
           curl -X POST "https://api.bunny.net/purge" \
-          -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}" \
-          -H "Content-Length: 0"
+            -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}" \
+            -H "Content-Length: 0"
