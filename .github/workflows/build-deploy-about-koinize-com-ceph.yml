@@ -1,4 +1,4 @@
-name: Build & Deploy about.koinize.com to Ceph
+name: Deploy about.koinize.com to Ceph
 
 on:
   push:
@@ -7,36 +7,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source code
+      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: npm
-
-      # 3. Install dependencies
-      - name: Install dependencies
-        run: npm ci
-
-      # 4. Build website
-      - name: Build website
-        run: npm run build
-
-      # 5. Install AWS CLI
+      # 2. Install AWS CLI
       - name: Install AWS CLI
         run: |
           sudo apt-get update
           sudo apt-get install -y awscli
 
-      # 6. Deploy to Ceph
+      # 3. Deploy to Ceph
       - name: Deploy to Ceph bucket (about-koinize-com)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -44,11 +29,13 @@ jobs:
           AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
           AWS_ENDPOINT_URL: ${{ vars.AWS_ENDPOINT_URL }}
         run: |
-          aws s3 sync ./build s3://about-koinize-com \
+          aws s3 sync . s3://about-koinize-com \
             --endpoint-url $AWS_ENDPOINT_URL \
-            --delete
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*"
 
-      # 7. Purge Bunny CDN cache
+      # 4. Purge Bunny CDN cache
       - name: Purge Bunny CDN cache
         if: success()
         run: |
