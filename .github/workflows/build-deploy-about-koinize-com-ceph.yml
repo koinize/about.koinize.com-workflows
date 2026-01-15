@@ -1,0 +1,63 @@
+name: Build & Deploy about.koinize.com to Ceph
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # --------------------------------------------------
+      # 1. Checkout source code
+      # --------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------
+      # 2. Setup Node.js (adjust version if needed)
+      # --------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      # --------------------------------------------------
+      # 3. Install dependencies
+      # --------------------------------------------------
+      - name: Install dependencies
+        run: npm ci
+
+      # --------------------------------------------------
+      # 4. Build website
+      # (adjust build command or output dir if different)
+      # --------------------------------------------------
+      - name: Build website
+        run: npm run build
+
+      # --------------------------------------------------
+      # 5. Deploy to Ceph (Dynabic S3-compatible storage)
+      # --------------------------------------------------
+      - name: Deploy to Ceph bucket (about-koinize-com)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+        run: |
+          aws s3 sync ./build s3://about-koinize-com \
+            --endpoint-url ${{ vars.AWS_ENDPOINT_URL }} \
+            --delete
+
+      # --------------------------------------------------
+      # 6. Purge Bunny.net cache (if CDN is enabled)
+      # --------------------------------------------------
+      - name: Purge Bunny CDN cache
+        if: success()
+        run: |
+          curl -X POST "https://api.bunny.net/purge" \
+          -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}" \
+          -H "Content-Length: 0"
