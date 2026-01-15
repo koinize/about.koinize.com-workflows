@@ -52,7 +52,7 @@ jobs:
           fi
           aws --version
 
-      # --- Ceph S3 sync ---
+      # --- Ceph S3 sync --- 
       - name: Sync Website to Ceph S3 (aws s3 sync)
         shell: bash
         env:
