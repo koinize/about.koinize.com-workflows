@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
+      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -24,12 +24,12 @@ jobs:
           AWS_ENDPOINT_URL: ${{ vars.AWS_ENDPOINT_URL }}
         run: |
           aws s3 sync . s3://about-koinize-com \
-            --endpoint-url $AWS_ENDPOINT_URL \
+            --endpoint-url "$AWS_ENDPOINT_URL" \
             --delete \
             --exclude ".git/*" \
             --exclude ".github/*"
 
-      # 3. Purge Bunny CDN cache
+      # 3. Purge Bunny CDN
       - name: Purge Bunny CDN cache
         if: success()
         run: |
